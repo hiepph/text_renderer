@@ -1,0 +1,6 @@
+opencv-python
+scipy
+pygame
+
+# test
+pytest
