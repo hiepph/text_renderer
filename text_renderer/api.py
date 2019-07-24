@@ -6,8 +6,9 @@ from pygame import freetype
 import numpy as np
 from scipy import ndimage
 import cv2
+from PIL import Image
 
-from .font import FontState, ColorState, BaselineState, BorderState
+from .font import FontState, ColorState, BaselineState, BorderState, AffineTransformState, PerspectiveTransformState
 
 
 MJBLEND_NORMAL = "normal"
@@ -66,11 +67,23 @@ def grey_blit(src, dst, blend_mode=MJBLEND_NORMAL):
     return out
 
 
-# def imcrop(arr, rect):
-#     if arr.ndim > 2:
-#         return arr[rect[1]:rect[1]+rect[3], rect[0]:rect[0]+rect[2],...]
-#     else:
-#         return arr[rect[1]:rect[1]+rect[3], rect[0]:rect[0]+rect[2]]
+def imcrop(arr, rect):
+    if arr.ndim > 2:
+        return arr[rect[1]:rect[1]+rect[3], rect[0]:rect[0]+rect[2],...]
+    else:
+        return arr[rect[1]:rect[1]+rect[3], rect[0]:rect[0]+rect[2]]
+
+
+def get_bb(arr, eq=None):
+    if eq is None:
+        v = np.nonzero(arr > 0)
+    else:
+        v = np.nonzero(arr == eq)
+    xmin = v[1].min()
+    xmax = v[1].max()
+    ymin = v[0].min()
+    ymax = v[0].max()
+    return [xmin, ymin, xmax-xmin, ymax-ymin]
 
 
 def arr_scroll(arr, dx, dy):
@@ -119,8 +132,22 @@ def get_ga_image(surf):
     return np.concatenate((r, a), axis=2).swapaxes(0, 1)
 
 
+def apply_perspective_arr(arr, affstate, a_proj_type, perstate, p_proj_type, filtering=Image.BICUBIC):
+    img = Image.fromarray(arr)
+    img = img.transform(img.size, a_proj_type,
+                        affstate,
+                        filtering)
+    img = img.transform(img.size, p_proj_type,
+                        perstate,
+                        filtering)
+    arr = np.array(img)
+    return arr
+
+
 def gen(text, sz=(800, 200),
-        fontstate=FontState(), colorstate=ColorState(), baselinestate=BaselineState()):
+        fontstate=FontState(), colorstate=ColorState(), baselinestate=BaselineState(),
+        affinestate=AffineTransformState(), perspectivestate=PerspectiveTransformState(),
+        substring_crop=0, random_crop=True):
     """Generate text image from input text
     """
     fs = fontstate.get_sample()
@@ -164,7 +191,7 @@ def gen(text, sz=(800, 200),
     rect = font.get_rect(text[mid_idx])
     rect.centerx = bg_surf.get_rect().centerx
     rect.centery = bg_surf.get_rect().centery + rect.height
-    rect.centery +=  curve[mid_idx]
+    rect.centery += curve[mid_idx]
     bbrect = font.render_to(bg_surf, rect, text[mid_idx], rotation=rotations[mid_idx])
 
     bbrect.x = rect.x
@@ -215,18 +242,38 @@ def gen(text, sz=(800, 200),
     # colour text
     bg_arr[..., 0] = cs[0]
 
-
     # border/shadow
-    # if fs['border']:
-        # l1_arr, l2_arr = get_bordershadow(bg_arr, cs[2])
-    # else:
-        # l1_arr = bg_arr
+    if fs['border']:
+        l1_arr, l2_arr = get_bordershadow(bg_arr, cs[2])
+    else:
+        l1_arr = bg_arr
 
+     # do rotation and perspective distortion
+    affstate = affinestate.sample_transformation(l1_arr.shape)
+    perstate = perspectivestate.sample_transformation(l1_arr.shape)
+    l1_arr[...,1] = apply_perspective_arr(l1_arr[...,1], affstate, affinestate.proj_type, perstate, perspectivestate.proj_type)
+    if fs['border']:
+        l2_arr[..., 1] = apply_perspective_arr(l2_arr[...,1], affstate,affinestate.proj_type, perstate, perspectivestate.proj_type)
 
-    l1_arr, l2_arr = get_bordershadow(bg_arr, cs[2])
+    # get bb of text
+    if fs['border']:
+        bb = pygame.Rect(get_bb(grey_blit(l2_arr, l1_arr)[...,1]))
+    else:
+        bb = pygame.Rect(get_bb(l1_arr[...,1]))
+
+    if random_crop:
+        bb.inflate_ip(10*np.random.randn()+15, 10*np.random.randn()+15)
+    else:
+        inflate_amount = int(0.4*bb[3])
+        bb.inflate_ip(inflate_amount, inflate_amount)
+
+    # crop image
+    l1_arr = imcrop(l1_arr, bb)
+    if fs['border']:
+        l2_arr = imcrop(l2_arr, bb)
 
     canvas = (255*np.ones(l1_arr.shape)).astype(l1_arr.dtype)
-    canvas[...,0] = cs[1]
+    canvas[..., 0] = cs[1]
 
     # compose global image
     blend_modes = [MJBLEND_NORMAL, MJBLEND_ADD, MJBLEND_MULTINV, MJBLEND_SCREEN, MJBLEND_MAX]
