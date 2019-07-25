@@ -1,6 +1,9 @@
 opencv-python
+Pillow
 scipy
 pygame
+numpy
+tqdm
 
 # test
 pytest

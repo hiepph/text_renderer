@@ -140,6 +140,7 @@ class AffineTransformState(object):
         return (A[0,0], A[0,1], -x*A[0,0] - y*A[0,1] + x,
                 A[1,0], A[1,1], -x*A[1,0] - y*A[1,1] + y)
 
+
 class PerspectiveTransformState(object):
     """
     Defines teh random state for a perspective transformation

@@ -1,6 +1,7 @@
 import math
 import os
 import random
+import uuid
 
 import pygame
 from pygame import freetype
@@ -8,6 +9,7 @@ import numpy as np
 from scipy import ndimage
 import cv2
 from PIL import Image
+from tqdm import tqdm
 
 from .font import FontState, ColorState, BaselineState, BorderState, AffineTransformState, PerspectiveTransformState, SurfaceDistortionState, DistortionState
 
@@ -25,7 +27,15 @@ MJBLEND_MAX = "max"
 pygame.init()
 
 
+fontstate = FontState()
+colorstate = ColorState()
+baselinestate = BaselineState()
+affinestate = AffineTransformState()
+perspectivestate = PerspectiveTransformState()
 diststate = DistortionState()
+surfdiststate = SurfaceDistortionState()
+
+
 def global_distortions(arr):
     # http://scipy-lectures.github.io/advanced/image_processing/#image-filtering
     ds = diststate.get_sample()
@@ -50,7 +60,6 @@ def global_distortions(arr):
     return newarr
 
 
-surfdiststate = SurfaceDistortionState()
 def surface_distortions(arr):
     ds = surfdiststate.get_sample()
     blur = ds['blur']
@@ -315,8 +324,6 @@ def apply_perspective_arr(arr, affstate, a_proj_type, perstate, p_proj_type, fil
 
 
 def gen(text, sz=(800, 200),
-        fontstate=FontState(), colorstate=ColorState(), baselinestate=BaselineState(),
-        affinestate=AffineTransformState(), perspectivestate=PerspectiveTransformState(),
         substring_crop=0, random_crop=True):
     """Generate text image from input text
     """
@@ -469,8 +476,8 @@ def gen(text, sz=(800, 200),
         if std > 20:
             break
         if count > 10:
-            print("\tcan't get good contrast")
-            return None
+            print("\tERR: can't get good contrast")
+            return None, None
     canvas = globalcanvas
 
     # add global distortions
@@ -479,4 +486,30 @@ def gen(text, sz=(800, 200),
     # noise removal
     canvas = ndimage.filters.median_filter(canvas, size=(3,3))
 
-    cv2.imwrite('test.jpg', canvas)
+    return canvas, text
+
+
+def bulk_gen(file_path, out_dir, n_copy=1):
+    """Bulk generate multiple words
+
+    Args:
+    file_path: path to file contains dictionary words to generate
+    out_dir: directory to store results
+    n_copy: number of copy for each words
+    """
+    im_dir = os.path.join(out_dir, 'img')
+    os.makedirs(im_dir, exist_ok=True)
+
+    lines = open(file_path).readlines()
+    with open(os.path.join(out_dir, 'annotation.txt'), 'w') as f:
+        for line in tqdm(lines):
+            word = line[:-1]
+            for _ in range(n_copy):
+                im, label = gen(word)
+                if im is None:
+                    continue
+
+                im_id = str(uuid.uuid4())
+                im_name = f'{im_id}.jpg'
+                cv2.imwrite(os.path.join(im_dir, im_name), im)
+                f.write(f'{im_name}\t{label}\n')
