@@ -9,7 +9,7 @@ from scipy import ndimage
 import cv2
 from PIL import Image
 
-from .font import FontState, ColorState, BaselineState, BorderState, AffineTransformState, PerspectiveTransformState
+from .font import FontState, ColorState, BaselineState, BorderState, AffineTransformState, PerspectiveTransformState, SurfaceDistortionState, DistortionState
 
 
 MJBLEND_NORMAL = "normal"
@@ -23,6 +23,49 @@ MJBLEND_MIN = "min"
 MJBLEND_MAX = "max"
 
 pygame.init()
+
+
+diststate = DistortionState()
+def global_distortions(arr):
+    # http://scipy-lectures.github.io/advanced/image_processing/#image-filtering
+    ds = diststate.get_sample()
+
+    blur = ds['blur']
+    sharpen = ds['sharpen']
+    sharpen_amount = ds['sharpen_amount']
+    noise = ds['noise']
+
+    newarr = np.minimum(np.maximum(0, arr + np.random.normal(0, noise, arr.shape)), 255)
+    if blur > 0.1:
+        newarr = ndimage.gaussian_filter(newarr, blur)
+    if sharpen:
+        newarr_ = ndimage.gaussian_filter(arr, blur/2)
+        newarr = newarr + sharpen_amount*(newarr - newarr_)
+
+    if ds['resample']:
+        sh = newarr.shape[0]
+        newarr = resize_image(newarr, newh=ds['resample_height'])
+        newarr = resize_image(newarr, newh=sh)
+
+    return newarr
+
+
+surfdiststate = SurfaceDistortionState()
+def surface_distortions(arr):
+    ds = surfdiststate.get_sample()
+    blur = ds['blur']
+
+    origarr = arr.copy()
+    arr = np.minimum(np.maximum(0, arr + np.random.normal(0, ds['noise'], arr.shape)), 255)
+    # make some changes to the alpha
+    arr[...,1] = ndimage.gaussian_filter(arr[...,1], ds['blur'])
+    ds = surfdiststate.get_sample()
+    arr[...,0] = ndimage.gaussian_filter(arr[...,0], ds['blur'])
+    if ds['sharpen']:
+        newarr_ = ndimage.gaussian_filter(origarr[...,0], blur/2)
+        arr[...,0] = arr[...,0] + ds['sharpen_amount']*(arr[...,0] - newarr_)
+
+    return arr
 
 
 class FillImageState(object):
@@ -409,9 +452,9 @@ def gen(text, sz=(800, 200),
         l2_arr = add_fillimage(l2_arr)
 
     # add per-surface distortions
-        # l1_arr = self.surface_distortions(l1_arr)
-        # if fs['border']:
-        #     l2_arr = self.surface_distortions(l2_arr)
+    l1_arr = surface_distortions(l1_arr)
+    if fs['border']:
+        l2_arr = surface_distortions(l2_arr)
 
     # compose global image
     blend_modes = [MJBLEND_NORMAL, MJBLEND_ADD, MJBLEND_MULTINV, MJBLEND_SCREEN, MJBLEND_MAX]
@@ -429,4 +472,11 @@ def gen(text, sz=(800, 200),
             print("\tcan't get good contrast")
             return None
     canvas = globalcanvas
+
+    # add global distortions
+    canvas = global_distortions(canvas)
+
+    # noise removal
+    canvas = ndimage.filters.median_filter(canvas, size=(3,3))
+
     cv2.imwrite('test.jpg', canvas)

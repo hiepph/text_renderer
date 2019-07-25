@@ -207,3 +207,26 @@ class ElasticDistortionState(object):
         dispmapx = alpha * ndimage.gaussian_filter(dispmapx, sigma)
         dispmaxy = alpha * ndimage.gaussian_filter(dispmapy, sigma)
         return dispmapx, dispmaxy
+
+
+class DistortionState(object):
+    blur = [0, 1]
+    sharpen = 0
+    sharpen_amount = [30, 10]
+    noise = 4
+    resample = 0.1
+    resample_range = [24, 32]
+
+    def get_sample(self):
+        return {
+            'blur': np.abs(self.blur[1]*np.random.randn() + self.blur[0]),
+            'sharpen': np.random.rand() < self.sharpen,
+            'sharpen_amount': self.sharpen_amount[1]*np.random.randn() + self.sharpen_amount[0],
+            'noise': self.noise,
+            'resample': np.random.rand() < self.resample,
+            'resample_height': int(np.random.uniform(self.resample_range[0], self.resample_range[1]))
+        }
+
+class SurfaceDistortionState(DistortionState):
+    noise = 8
+    resample = 0
