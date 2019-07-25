@@ -1,4 +1,5 @@
 import math
+import os
 import random
 
 import pygame
@@ -23,6 +24,132 @@ MJBLEND_MAX = "max"
 
 pygame.init()
 
+
+class FillImageState(object):
+    """
+    Handles the images used for filling the background, foreground, and border surfaces
+    """
+    DATA_DIR = './data/fill'
+    IMLIST = ['ali.jpg']
+    blend_amount = [0.0, 0.25]  # normal dist mean, std
+    blend_modes = [MJBLEND_NORMAL, MJBLEND_ADD, MJBLEND_MULTINV, MJBLEND_SCREEN, MJBLEND_MAX]
+    blend_order = 0.5
+    min_textheight = 16.0  # minimum pixel height that you would find text in an image
+
+    def get_sample(self, surfarr):
+        """
+        The image sample returned should not have it's aspect ratio changed, as this would never happen in real world.
+        It can still be resized of course.
+        """
+        # load image
+        imfn = os.path.join(self.DATA_DIR, random.choice(self.IMLIST))
+        baseim = np.array(Image.open(imfn))
+
+        # choose a colour channel or rgb2gray
+        if baseim.ndim == 3:
+            if np.random.rand() < 0.25:
+                baseim = rgb2gray(baseim)
+            else:
+                baseim = baseim[..., np.random.randint(0,3)]
+        else:
+            assert(baseim.ndim == 2)
+
+        imsz = baseim.shape
+        surfsz = surfarr.shape
+
+        # don't resize bigger than if at the original size, the text was less than min_textheight
+        max_factor = float(surfsz[0])/self.min_textheight
+        # don't resize smaller than it is smaller than a dimension of the surface
+        min_factor = max(float(surfsz[0] + 5)/float(imsz[0]), float(surfsz[1] + 5)/float(imsz[1]))
+        # sample a resize factor
+        factor = max(min_factor, min(max_factor, ((max_factor-min_factor)/1.5)*np.random.randn() + max_factor))
+        sampleim = resize_image(baseim, factor)
+        imsz = sampleim.shape
+        # sample an image patch
+        good = False
+        curs = 0
+        while not good:
+            curs += 1
+            if curs > 1000:
+                print("difficulty getting sample")
+                break
+            try:
+                x = np.random.randint(0,imsz[1]-surfsz[1])
+                y = np.random.randint(0,imsz[0]-surfsz[0])
+                good = True
+            except ValueError:
+                # resample factor
+                factor = max(min_factor, min(max_factor, ((max_factor-min_factor)/1.5)*np.random.randn() + max_factor))
+                sampleim = resize_image(baseim, factor)
+                imsz = sampleim.shape
+        imsample = (np.zeros(surfsz) + 255).astype(surfarr.dtype)
+        imsample[...,0] = sampleim[y:y+surfsz[0],x:x+surfsz[1]]
+        imsample[...,1] = surfarr[...,1].copy()
+
+        return {
+            'image': imsample,
+            'blend_mode': random.choice(self.blend_modes),
+            'blend_amount': min(1.0, np.abs(self.blend_amount[1]*np.random.randn() + self.blend_amount[0])),
+            'blend_order': np.random.rand() < self.blend_order,
+        }
+
+
+def rgb2gray(rgb):
+    # RGB -> grey-scale (as in Matlab's rgb2grey)
+    try:
+        r, g, b = rgb[:,:,0], rgb[:,:,1], rgb[:,:,2]
+        gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
+    except IndexError:
+        try:
+            gray = rgb[:,:,0]
+        except IndexError:
+            gray = rgb[:,:]
+    return gray
+
+
+def resize_image(im, r=None, newh=None, neww=None, filtering=Image.BILINEAR):
+    dt = im.dtype
+    I = Image.fromarray(im)
+    if r is not None:
+        h = im.shape[0]
+        w = im.shape[1]
+        newh = int(round(r*h))
+        neww = int(round(r*w))
+    if neww is None:
+        neww = int(newh*im.shape[1]/float(im.shape[0]))
+    if newh > im.shape[0]:
+        I = I.resize([neww, newh], Image.ANTIALIAS)
+    else:
+        I.thumbnail([neww, newh], filtering)
+    return np.array(I).astype(dt)
+
+
+def add_fillimage(arr, fillimstate=FillImageState()):
+    """
+    Adds a fill image to the array.
+    For blending this might be useful:
+    - http://stackoverflow.com/questions/601776/what-do-the-blend-modes-in-pygame-mean
+    - http://stackoverflow.com/questions/5605174/python-pil-function-to-divide-blend-two-images
+    """
+    fis = fillimstate.get_sample(arr)
+
+    image = fis['image']
+    blend_mode = fis['blend_mode']
+    blend_amount = fis['blend_amount']
+    blend_order = fis['blend_order']
+
+    # change alpha of the image
+    if blend_amount > 0:
+        if blend_order:
+            image = image.astype(np.float64)
+            image[...,1] *= blend_amount
+            arr = grey_blit(image, arr, blend_mode=blend_mode)
+        else:
+            arr = arr.astype(np.float64)
+            arr[...,1] *= (1 - blend_amount)
+            arr = grey_blit(arr, image, blend_mode=blend_mode)
+
+    return arr
 
 
 def grey_blit(src, dst, blend_mode=MJBLEND_NORMAL):
@@ -274,6 +401,17 @@ def gen(text, sz=(800, 200),
 
     canvas = (255*np.ones(l1_arr.shape)).astype(l1_arr.dtype)
     canvas[..., 0] = cs[1]
+
+    # add in natural images
+    canvas = add_fillimage(canvas)
+    l1_arr = add_fillimage(l1_arr)
+    if fs['border']:
+        l2_arr = add_fillimage(l2_arr)
+
+    # add per-surface distortions
+        # l1_arr = self.surface_distortions(l1_arr)
+        # if fs['border']:
+        #     l2_arr = self.surface_distortions(l2_arr)
 
     # compose global image
     blend_modes = [MJBLEND_NORMAL, MJBLEND_ADD, MJBLEND_MULTINV, MJBLEND_SCREEN, MJBLEND_MAX]
