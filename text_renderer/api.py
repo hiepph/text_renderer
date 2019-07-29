@@ -82,7 +82,7 @@ class FillImageState(object):
     Handles the images used for filling the background, foreground, and border surfaces
     """
     DATA_DIR = './data/fill'
-    IMLIST = ['ali.jpg']
+    IMLIST = os.listdir(DATA_DIR)
     blend_amount = [0.0, 0.25]  # normal dist mean, std
     blend_modes = [MJBLEND_NORMAL, MJBLEND_ADD, MJBLEND_MULTINV, MJBLEND_SCREEN, MJBLEND_MAX]
     blend_order = 0.5
