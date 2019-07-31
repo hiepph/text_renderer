@@ -1,1 +1,1 @@
-from .api import gen, bulk_gen
+from .api import gen

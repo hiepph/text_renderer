@@ -9,6 +9,9 @@ import scipy.cluster
 from scipy import ndimage
 
 
+this_dir, _ = os.path.split(__file__)
+
+
 class FontState(object):
     """
     Defines the random state of the font rendering
@@ -28,7 +31,7 @@ class FontState(object):
     random_kerning = 0.2
     random_kerning_amount = 0.1
 
-    def __init__(self, font_dir='./data/font', font_list='./data/font/fontlist.txt'):
+    def __init__(self, font_dir=f'{this_dir}/data/font', font_list=f'{this_dir}/data/font/fontlist.txt'):
         self.fonts = [os.path.join(font_dir, f.strip()) for f in open(font_list)]
 
     def get_sample(self):
@@ -38,7 +41,8 @@ class FontState(object):
         return {
             'font': self.fonts[int(np.random.randint(0, len(self.fonts)))],
             'size': self.size[1]*np.random.randn() + self.size[0],
-            'underline': np.random.rand() < self.underline,
+            # 'underline': np.random.rand() < self.underline,
+            'underline': False,
             'underline_adjustment': max(2.0, min(-2.0, self.underline_adjustment[1] * np.random.randn()
                                                  + self.underline_adjustment[0])),
             'strong': np.random.rand() < self.strong,
@@ -62,7 +66,7 @@ class ColorState(object):
     and clustering in to desired number of colours
     (http://stackoverflow.com/questions/3241929/python-find-dominant-most-common-color-in-an-image)
     """
-    def __init__(self, imfn='./data/ali.jpg'):
+    def __init__(self, imfn=f'{this_dir}/data/ali.jpg'):
         self.im = cv2.imread(imfn, 0)
 
     def get_sample(self, n_colours):
