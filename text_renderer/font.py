@@ -10,7 +10,6 @@ from scipy import ndimage
 
 
 this_dir, _ = os.path.split(__file__)
-root_dir, _ = os.path.split(this_dir)
 
 
 class FontState(object):
@@ -32,7 +31,7 @@ class FontState(object):
     random_kerning = 0.2
     random_kerning_amount = 0.1
 
-    def __init__(self, font_dir=f'{root_dir}/data/font', font_list=f'{root_dir}/data/font/fontlist.txt'):
+    def __init__(self, font_dir=f'{this_dir}/data/font', font_list=f'{this_dir}/data/font/fontlist.txt'):
         self.fonts = [os.path.join(font_dir, f.strip()) for f in open(font_list)]
 
     def get_sample(self):
@@ -66,7 +65,7 @@ class ColorState(object):
     and clustering in to desired number of colours
     (http://stackoverflow.com/questions/3241929/python-find-dominant-most-common-color-in-an-image)
     """
-    def __init__(self, imfn=f'{root_dir}/data/ali.jpg'):
+    def __init__(self, imfn=f'{this_dir}/data/ali.jpg'):
         self.im = cv2.imread(imfn, 0)
 
     def get_sample(self, n_colours):

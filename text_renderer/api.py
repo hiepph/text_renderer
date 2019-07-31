@@ -14,7 +14,6 @@ from tqdm import tqdm
 from .font import FontState, ColorState, BaselineState, BorderState, AffineTransformState, PerspectiveTransformState, SurfaceDistortionState, DistortionState
 
 this_dir, _ = os.path.split(__file__)
-root_dir, _ = os.path.split(this_dir)
 
 
 MJBLEND_NORMAL = "normal"
@@ -84,7 +83,7 @@ class FillImageState(object):
     """
     Handles the images used for filling the background, foreground, and border surfaces
     """
-    DATA_DIR = f'{root_dir}/data/fill'
+    DATA_DIR = f'{this_dir}/data/fill'
     IMLIST = os.listdir(DATA_DIR)
     blend_amount = [0.0, 0.25]  # normal dist mean, std
     blend_modes = [MJBLEND_NORMAL, MJBLEND_ADD, MJBLEND_MULTINV, MJBLEND_SCREEN, MJBLEND_MAX]
