@@ -41,7 +41,8 @@ class FontState(object):
         return {
             'font': self.fonts[int(np.random.randint(0, len(self.fonts)))],
             'size': self.size[1]*np.random.randn() + self.size[0],
-            'underline': np.random.rand() < self.underline,
+            # 'underline': np.random.rand() < self.underline,
+            'underline': False,
             'underline_adjustment': max(2.0, min(-2.0, self.underline_adjustment[1] * np.random.randn()
                                                  + self.underline_adjustment[0])),
             'strong': np.random.rand() < self.strong,
