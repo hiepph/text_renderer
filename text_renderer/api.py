@@ -13,6 +13,9 @@ from tqdm import tqdm
 
 from .font import FontState, ColorState, BaselineState, BorderState, AffineTransformState, PerspectiveTransformState, SurfaceDistortionState, DistortionState
 
+this_dir, _ = os.path.split(__file__)
+root_dir, _ = os.path.split(this_dir)
+
 
 MJBLEND_NORMAL = "normal"
 MJBLEND_ADD = "add"
@@ -81,7 +84,7 @@ class FillImageState(object):
     """
     Handles the images used for filling the background, foreground, and border surfaces
     """
-    DATA_DIR = './data/fill'
+    DATA_DIR = f'{root_dir}/data/fill'
     IMLIST = os.listdir(DATA_DIR)
     blend_amount = [0.0, 0.25]  # normal dist mean, std
     blend_modes = [MJBLEND_NORMAL, MJBLEND_ADD, MJBLEND_MULTINV, MJBLEND_SCREEN, MJBLEND_MAX]
@@ -487,29 +490,3 @@ def gen(text, sz=(800, 200),
     canvas = ndimage.filters.median_filter(canvas, size=(3,3))
 
     return canvas, text
-
-
-def bulk_gen(file_path, out_dir, n_copy=1):
-    """Bulk generate multiple words
-
-    Args:
-    file_path: path to file contains dictionary words to generate
-    out_dir: directory to store results
-    n_copy: number of copy for each words
-    """
-    im_dir = os.path.join(out_dir, 'img')
-    os.makedirs(im_dir, exist_ok=True)
-
-    lines = open(file_path).readlines()
-    with open(os.path.join(out_dir, 'annotation.txt'), 'w') as f:
-        for line in tqdm(lines):
-            word = line[:-1]
-            for _ in range(n_copy):
-                im, label = gen(word)
-                if im is None:
-                    continue
-
-                im_id = str(uuid.uuid4())
-                im_name = f'{im_id}.jpg'
-                cv2.imwrite(os.path.join(im_dir, im_name), im)
-                f.write(f'{im_name}\t{label}\n')

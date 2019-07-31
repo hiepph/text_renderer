@@ -12,7 +12,7 @@ requirements = [
 
 setup(
     name='text_renderer',
-    version='0.0.2',
+    version='0.0.3',
     description="Generate Mjsynth text data",
     packages=['text_renderer'],
     install_requirements=requirements,
