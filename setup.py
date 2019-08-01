@@ -12,14 +12,13 @@ requirements = [
 
 setup(
     name='text_renderer',
-    version='0.0.5',
+    version='0.0.6',
     description="Generate Mjsynth text data",
     packages=['text_renderer'],
     package_data={'text_renderer': [
         'data/font/*',
         'data/font/vn/*',
-        'data/fill/*',
-        'data/dictionary/*'
+        'data/fill/*'
     ]},
     include_package_data=True,
     install_requirements=requirements,

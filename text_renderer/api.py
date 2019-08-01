@@ -2,6 +2,7 @@ import math
 import os
 import random
 import uuid
+import glob
 
 import pygame
 from pygame import freetype
@@ -30,7 +31,6 @@ pygame.init()
 
 
 fontstate = FontState()
-colorstate = ColorState()
 baselinestate = BaselineState()
 affinestate = AffineTransformState()
 perspectivestate = PerspectiveTransformState()
@@ -326,6 +326,7 @@ def apply_perspective_arr(arr, affstate, a_proj_type, perstate, p_proj_type, fil
 
 
 def gen(text, sz=(800, 200),
+        color=random.choice(glob.glob(f'{this_dir}/data/fill')),
         substring_crop=0, random_crop=True):
     """Generate text image from input text
     """
@@ -348,6 +349,7 @@ def gen(text, sz=(800, 200),
     font.antialiased = True
     font.origin = True
 
+    colorstate = ColorState(color)
     cs = colorstate.get_sample(2 + fs['border'])
 
     mid_idx = int(math.floor(len(text) / 2))
