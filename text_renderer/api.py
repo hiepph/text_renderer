@@ -83,12 +83,14 @@ class FillImageState(object):
     """
     Handles the images used for filling the background, foreground, and border surfaces
     """
-    DATA_DIR = f'{this_dir}/data/fill'
-    IMLIST = os.listdir(DATA_DIR)
     blend_amount = [0.0, 0.25]  # normal dist mean, std
     blend_modes = [MJBLEND_NORMAL, MJBLEND_ADD, MJBLEND_MULTINV, MJBLEND_SCREEN, MJBLEND_MAX]
     blend_order = 0.5
     min_textheight = 16.0  # minimum pixel height that you would find text in an image
+
+    def __init__(self, data_dir=f'{this_dir}/data/fill'):
+        self.data_dir = data_dir
+        self.im_list = os.listdir(data_dir)
 
     def get_sample(self, surfarr):
         """
@@ -96,7 +98,7 @@ class FillImageState(object):
         It can still be resized of course.
         """
         # load image
-        imfn = os.path.join(self.DATA_DIR, random.choice(self.IMLIST))
+        imfn = os.path.join(self.data_dir, random.choice(self.im_list))
         baseim = np.array(Image.open(imfn))
 
         # choose a colour channel or rgb2gray
@@ -327,6 +329,7 @@ def apply_perspective_arr(arr, affstate, a_proj_type, perstate, p_proj_type, fil
 
 def gen(text, sz=(800, 200),
         color=random.choice(glob.glob(f'{this_dir}/data/fill')),
+        fill=f'{this_dir}/data/fill',
         substring_crop=0, random_crop=True):
     """Generate text image from input text
     """
@@ -457,7 +460,7 @@ def gen(text, sz=(800, 200),
     canvas[..., 0] = cs[1]
 
     # add in natural images
-    canvas = add_fillimage(canvas)
+    canvas = add_fillimage(canvas, FillImageState(fill))
     l1_arr = add_fillimage(l1_arr)
     if fs['border']:
         l2_arr = add_fillimage(l2_arr)
