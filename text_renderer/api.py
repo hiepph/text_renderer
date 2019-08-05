@@ -328,7 +328,7 @@ def apply_perspective_arr(arr, affstate, a_proj_type, perstate, p_proj_type, fil
 
 
 def gen(text, sz=(800, 200),
-        color=random.choice(glob.glob(f'{this_dir}/data/fill')),
+        color=random.choice(glob.glob(f'{this_dir}/data/fill/*')),
         fill=f'{this_dir}/data/fill',
         substring_crop=0, random_crop=True):
     """Generate text image from input text

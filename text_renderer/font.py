@@ -67,7 +67,7 @@ class ColorState(object):
     and clustering in to desired number of colours
     (http://stackoverflow.com/questions/3241929/python-find-dominant-most-common-color-in-an-image)
     """
-    def __init__(self, imfn=random.choice(glob.glob(f'{this_dir}/data/fill'))):
+    def __init__(self, imfn=random.choice(glob.glob(f'{this_dir}/data/fill/*'))):
         self.im = cv2.imread(imfn, 0)
 
     def get_sample(self, n_colours):
