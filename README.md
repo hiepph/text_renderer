@@ -1,7 +1,6 @@
 # Text Renderer
 
 Python library to generate synthetic text image data followed method by M. Jaderberg, et al. ([Synthetic Data and Artificial Neural Networks for Natural Scene Text Recognition](https://arxiv.org/abs/1406.2227)).
-
 ![method](https://www.robots.ox.ac.uk/~vgg/data/text/synthflow.png)
 
 
@@ -30,24 +29,6 @@ cv2.imwrite('chào.jpg', im)
 ![demo](./misc/demo/chào.jpg)
 
 
-+ Generate bulk images:
+## References
 
-Get a sample `words.txt`:
-
-```
-phạm
-hoàng
-hiệp
-```
-
-```
-import text_renderer
-
-# generate each sample 3 times
-# and store in 'results' folder
-text_render.bulk_gen(file_path='./words.txt',
-                     out_dir='./results',
-                     n_copy=3)
-```
-
-![demo](./misc/demo/bulk.jpg)
++ Code is modified from [Max Jaderberg](https://bitbucket.org/jaderberg/text-renderer/src/master/)
